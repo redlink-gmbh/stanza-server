@@ -1,4 +1,4 @@
-# README #
+# Stanza Server
 
 Provides a webservice exposing [Stanford Stanza](https://stanfordnlp.github.io/stanza/index.html) as a webservice.
 
