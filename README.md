@@ -19,8 +19,12 @@ docker build -t stanza-server .
 Run the server via docker 
 
 ```
-docker run -p 8080:8080 stanza-server
+docker run -p 8080:8080 -v -v ~/stanza_resources/:/root/stanza_resources/ stanza-server
 ```
+
+Note:
+
+ * the volume for `/root/stanza_resources` prevents downloading models on every start
 
 After this you can use the server under `http://localhost:8080/process`
 
@@ -98,10 +102,10 @@ and the response format:
 
 ### Open Issues:
 
+* Currently CUDA is not supported in the current Docker image: See this 
+[Stackoverflow Post](https://stackoverflow.com/questions/60718574/containerization-of-a-python-code-with-stanfordnlp-that-uses-gpu)
+for a starting point.
 * Stanza can load models for languages (e.g. `stanza.download('en')`). I would like to have this configureable.
-For now it only downloads the German model when it starts. 
-* Only word level annotations (POS, Lemma) are supported for now. The plan is to add additional annotations
-as they are needed
-* Response format for Tokens has an array as ID. Need to look into Stanza to see why this
-is the case. 
-* The analysis pipeline is currently hardcoded. One could make this configurable via an request parameter. 
+For now it only downloads the German and English models are downloaded when it starts. 
+* Dependency annotations are not supported yet
+* The analysis pipeline is currently hardcoded. One could make this configurable 
