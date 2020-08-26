@@ -6,6 +6,9 @@ RUN pip install CherryPy
 COPY stanzaService.py .
 COPY main.py .
 
+#prevent downloading stanza models on every restart
+VOLUME ["/root/stanza_resources"]
+
 EXPOSE 8080
 
 ENTRYPOINT ["python", "main.py"]
