@@ -64,8 +64,17 @@ class StanzaService:
             "text": w.text,
             "token": self.token_id(w.parent),
         }
+        # NOTE:
+        # * pos/upos hold the Universal POS tags (https://universaldependencies.org/u/pos/)
+        # * xpos hold the model specific POS tags (see https://stanfordnlp.github.io/stanza/available_models.html)
+        # We keep both to allow clients to use upos as a base line but allow for more preceise mappings
+        # for specific languages/models
         try:  # only present if the pos processor is in the pipeline
             word["pos"] = w.pos
+        except AttributeError:
+            pass
+        try:  # only present if the pos processor is in the pipeline
+            word["xpos"] = w.xpos
         except AttributeError:
             pass
         try:  # only present if the lemma processor is in the pipeline
