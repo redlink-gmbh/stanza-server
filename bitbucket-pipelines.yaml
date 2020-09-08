@@ -1,0 +1,41 @@
+definitions:
+  steps:
+    - step: &docker-build
+        name: Build Docker
+        caches:
+          - docker
+        script:
+          - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
+          - IMAGE_VERSION=build${BITBUCKET_BUILD_NUMBER}-${BITBUCKET_COMMIT:0:7}
+          - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
+    - step: &docker-tag
+        name: Tag Version
+        caches:
+          - docker
+        script:
+          - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
+          - IMAGE_VERSION=build${BITBUCKET_BUILD_NUMBER}-${BITBUCKET_COMMIT:0:7}
+          - '[ -n "${BITBUCKET_TAG}" ] && docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_VERSION}:${BITBUCKET_TAG}'
+    - step: &docker-push
+        name: Push Docker Image
+        caches:
+          - docker
+        script:
+          - docker login -u ${PRIVATE_DOCKER_REGISTRY_USER} -p ${PRIVATE_DOCKER_REGISTRY_PASS} ${PRIVATE_DOCKER_REGISTRY_URL}
+          - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
+          - docker push ${IMAGE_NAME}
+pipelines:
+  default:
+    - step: *docker-build
+  branches:
+    master:
+      - step: *docker-build
+      - step: *docker-push
+  tags:
+    '**':
+      - step: *docker-build
+      - step: *docker-tag
+      - step: *docker-push
+
+options:
+  docker: true
