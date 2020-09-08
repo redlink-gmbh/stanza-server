@@ -1,42 +1,31 @@
 definitions:
   steps:
     - step: &docker-build
-        name: Build Docker
-        caches:
-          - docker
+        name: Build Docker Image
         script:
           - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
           - IMAGE_VERSION=build${BITBUCKET_BUILD_NUMBER}-${BITBUCKET_COMMIT:0:7}
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
-          - docker image prune -f
-    - step: &docker-tag
-        name: Tag Version
-        caches:
-          - docker
+    - step: &docker-build-push
+        name: Build & Push Docker Image
         script:
           - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
           - IMAGE_VERSION=build${BITBUCKET_BUILD_NUMBER}-${BITBUCKET_COMMIT:0:7}
-          - '[ -n "${BITBUCKET_TAG}" ] && docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_VERSION}:${BITBUCKET_TAG}'
-    - step: &docker-push
-        name: Push Docker Image
-        caches:
-          - docker
-        script:
+          - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
+          - '[ -n "${BITBUCKET_TAG}" ] && docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:${BITBUCKET_TAG}'
           - docker login -u ${PRIVATE_DOCKER_REGISTRY_USER} -p ${PRIVATE_DOCKER_REGISTRY_PASS} ${PRIVATE_DOCKER_REGISTRY_URL}
-          - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
           - docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "^${IMAGE_NAME}:" | xargs -trn 1 docker push
 pipelines:
   default:
     - step: *docker-build
   branches:
     master:
-      - step: *docker-build
-      - step: *docker-push
+      - step: *docker-build-push
   tags:
     '**':
-      - step: *docker-build
-      - step: *docker-tag
-      - step: *docker-push
+      - step:
+          <<: *docker-build-push
+          name: Build, Tag & Push Docker Image
 
 options:
   docker: true
