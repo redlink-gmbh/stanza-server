@@ -1,10 +1,18 @@
-from python:3.6.4-slim-jessie
+ARG CUDA_VERSION="10.1"
+FROM nvidia/cuda:${CUDA_VERSION}-base
 
-RUN pip install stanza
-RUN pip install CherryPy
+RUN apt-get update -qq \
+    && apt-get install -qq -y --no-install-recommends \
+        python3 \
+        python3-pip \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
 
-COPY stanzaService.py .
-COPY main.py .
+COPY requirements.txt ./
+RUN python3 -m pip install --no-cache-dir --upgrade pip setuptools wheel \
+    && python3 -m pip install --no-cache-dir -r requirements.txt
+
+COPY *.py ./
 
 #prevent downloading stanza models on every restart
 VOLUME ["/root/stanza_resources"]
