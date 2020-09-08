@@ -8,6 +8,7 @@ definitions:
           - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
           - IMAGE_VERSION=build${BITBUCKET_BUILD_NUMBER}-${BITBUCKET_COMMIT:0:7}
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
+          - docker image prune -f
     - step: &docker-tag
         name: Tag Version
         caches:
@@ -23,7 +24,7 @@ definitions:
         script:
           - docker login -u ${PRIVATE_DOCKER_REGISTRY_USER} -p ${PRIVATE_DOCKER_REGISTRY_PASS} ${PRIVATE_DOCKER_REGISTRY_URL}
           - IMAGE_NAME=${PRIVATE_DOCKER_REGISTRY_URL}/${BITBUCKET_REPO_OWNER}/${BITBUCKET_PROJECT_KEY,,}/${BITBUCKET_REPO_SLUG}
-          - docker push ${IMAGE_NAME}
+          - docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "^${IMAGE_NAME}:" |  | xargs -trn 1 docker push
 pipelines:
   default:
     - step: *docker-build
