@@ -14,6 +14,9 @@ definitions:
           - docker build -t ${IMAGE_NAME}:${IMAGE_VERSION} .
           - '[ -n "${BITBUCKET_TAG}" ] && docker tag ${IMAGE_NAME}:${IMAGE_VERSION} ${IMAGE_NAME}:${BITBUCKET_TAG}'
           - docker login -u ${PRIVATE_DOCKER_REGISTRY_USER} -p ${PRIVATE_DOCKER_REGISTRY_PASS} ${PRIVATE_DOCKER_REGISTRY_URL}
+          - docker images --format "{{.Repository}}:{{.Tag}}"
+          - docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "^${IMAGE_NAME}:"
+          - echo docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "^${IMAGE_NAME}:"
           - docker images --format "{{.Repository}}:{{.Tag}}" | grep -F "^${IMAGE_NAME}:" | xargs -trn 1 docker push
 pipelines:
   default:
