@@ -212,5 +212,4 @@ See the [License](LICENSE.txt) for more details.
 For now it only downloads the German and English models are downloaded when it starts. 
 * Dependency annotations are not supported yet
 * The analysis pipeline is currently hardcoded. One could make this configurable
-* Concurrency: We need to sync the process method as stanza does not support concurrent analysis
 

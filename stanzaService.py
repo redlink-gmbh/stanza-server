@@ -1,3 +1,18 @@
+#  Copyright (c) 2021 Redlink GmbH
+#
+#  Licensed under the Apache License, Version 2.0 (the "License");
+#  you may not use this file except in compliance with the License.
+#  You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+#  Unless required by applicable law or agreed to in writing, software
+#  distributed under the License is distributed on an "AS IS" BASIS,
+#  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#  See the License for the specific language governing permissions and
+#  limitations under the License.
+#
+import threading
 from contextlib import redirect_stderr
 
 import stanza
@@ -13,6 +28,7 @@ class StanzaService:
     pipelines = {}
 
     def __init__(self):
+        self._lock = threading.Lock()
         stanza.download('de')  # download German model
         stanza.download('en')  # download English model
         self.pipelines["de"] = stanza.Pipeline(lang="de", processors='tokenize,mwt,pos,lemma,ner');
@@ -22,7 +38,8 @@ class StanzaService:
         # creating a pipeline seams to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
         if nlp != None:
-            return self.map_annotations(nlp(text))
+            with self._lock: # concurrent annotations are not allowed
+                return self.map_annotations(nlp(text))
         else:
             raise LanguageNotSupportedError
 
