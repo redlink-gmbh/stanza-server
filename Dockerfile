@@ -22,4 +22,4 @@ VOLUME ["/root/stanza_resources"]
 
 EXPOSE 8080
 
-ENTRYPOINT ["python", "main.py"]
+ENTRYPOINT ["python3", "main.py"]
