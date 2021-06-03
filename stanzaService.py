@@ -17,7 +17,7 @@ import threading
 import stanza
 
 
-class LanguageNotSupportedError(object):
+class LanguageNotSupportedError(Exception):
     """Raised when the requested language is nor supported"""
     pass
 
@@ -40,7 +40,7 @@ class StanzaService:
             with self._lock: # concurrent annotations are not allowed
                 return self.map_annotations(nlp(text))
         else:
-            raise LanguageNotSupportedError
+            raise LanguageNotSupportedError()
 
     # TODO: add support for dependency parsing feautres
     def map_annotations(self, annotations):
