@@ -13,7 +13,6 @@
 #  limitations under the License.
 #
 import threading
-from contextlib import redirect_stderr
 
 import stanza
 
