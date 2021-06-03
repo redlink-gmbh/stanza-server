@@ -24,14 +24,14 @@ class LanguageNotSupportedError(Exception):
 
 class StanzaService:
 
-    pipelines = {}
-
     def __init__(self):
         self._lock = threading.Lock()
         stanza.download('de')  # download German model
         stanza.download('en')  # download English model
-        self.pipelines["de"] = stanza.Pipeline(lang="de", processors="tokenize,mwt,pos,lemma,ner")
-        self.pipelines["en"] = stanza.Pipeline(lang="en", processors="tokenize,mwt,pos,lemma,ner")
+        self.pipelines = {
+            "de": stanza.Pipeline(lang="de", processors="tokenize,mwt,pos,lemma,ner"),
+            "en": stanza.Pipeline(lang="en", processors="tokenize,mwt,pos,lemma,ner")
+        }
 
     def process(self, text, lang):
         # creating a pipeline seems to be expensive ... so we should cache them
