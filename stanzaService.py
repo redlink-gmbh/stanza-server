@@ -128,15 +128,16 @@ class StanzaService:
 
     @staticmethod
     def offset_id(t):
-        return "-".join(map(str, [t.start_char, t.end_char]))
+        return f"{t.start_char}-{t.end_char}"
 
     # The ID of a token is built out of the index of the token in the sentence
     # (a tupel as this reports multi-word tokens on the same index with a sub
     # index for sub-tokens) as well as the start/end offset if the token
     def token_id(self, t):
-        return ".".join(["-".join(map(str, t.id)), self.offset_id(t)])
+        index_id = "-".join([str(index) for index in t.id])
+        return f"{index_id}.{self.offset_id(t)}"
 
     # The ID of a word is built out of the index of the token in the sentence
     # as well as the start/end offset if the token
     def word_id(self, w):
-        return ".".join([str(w.id), self.offset_id(w.parent)])
+        return f"{w.id}.{self.offset_id(w.parent)}"
