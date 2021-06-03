@@ -34,7 +34,7 @@ class StanzaService:
         self.pipelines["en"] = stanza.Pipeline(lang="en", processors="tokenize,mwt,pos,lemma,ner")
 
     def process(self, text, lang):
-        # creating a pipeline seams to be expensive ... so we should cache them
+        # creating a pipeline seems to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
         if nlp != None:
             with self._lock:  # concurrent annotations are not allowed
@@ -42,7 +42,7 @@ class StanzaService:
         else:
             raise LanguageNotSupportedError()
 
-    # TODO: add support for dependency parsing feautres
+    # TODO: add support for dependency parsing features
     def map_annotations(self, annotations):
         return {
             "sentences": list(map(self.map_sentence, annotations.sentences)),
@@ -82,9 +82,9 @@ class StanzaService:
             "token": self.token_id(w.parent),
         }
         # NOTE:
-        # * pos/upos hold the Universal POS tags (https://universaldependencies.org/u/pos/)
+        # * pos/upos hold the universal POS tags (https://universaldependencies.org/u/pos/)
         # * xpos hold the model specific POS tags (see https://stanfordnlp.github.io/stanza/available_models.html)
-        # We keep both to allow clients to use upos as a base line but allow for more preceise mappings
+        # We keep both to allow clients to use upos as a base line but allow for more precise mappings
         # for specific languages/models
         try:  # only present if the pos processor is in the pipeline
             word["pos"] = w.pos
