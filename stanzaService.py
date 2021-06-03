@@ -36,7 +36,7 @@ class StanzaService:
     def process(self, text, lang):
         # creating a pipeline seems to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
-        if nlp != None:
+        if nlp:
             with self._lock:  # concurrent annotations are not allowed
                 return self.map_annotations(nlp(text))
         else:
