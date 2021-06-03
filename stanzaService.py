@@ -30,14 +30,14 @@ class StanzaService:
         self._lock = threading.Lock()
         stanza.download('de')  # download German model
         stanza.download('en')  # download English model
-        self.pipelines["de"] = stanza.Pipeline(lang="de", processors='tokenize,mwt,pos,lemma,ner');
-        self.pipelines["en"] = stanza.Pipeline(lang="en", processors='tokenize,mwt,pos,lemma,ner');
+        self.pipelines["de"] = stanza.Pipeline(lang="de", processors="tokenize,mwt,pos,lemma,ner")
+        self.pipelines["en"] = stanza.Pipeline(lang="en", processors="tokenize,mwt,pos,lemma,ner")
 
     def process(self, text, lang):
         # creating a pipeline seams to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
         if nlp != None:
-            with self._lock: # concurrent annotations are not allowed
+            with self._lock:  # concurrent annotations are not allowed
                 return self.map_annotations(nlp(text))
         else:
             raise LanguageNotSupportedError()
@@ -46,7 +46,8 @@ class StanzaService:
     def map_annotations(self, annotations):
         return {
             "sentences": list(map(self.map_sentence, annotations.sentences)),
-            "entities": list(map(self.map_entity, annotations.entities))}
+            "entities": list(map(self.map_entity, annotations.entities))
+        }
 
     def map_sentence(self, s):
         sentence = {
@@ -127,13 +128,13 @@ class StanzaService:
 
     @staticmethod
     def offset_id(t):
-        return "-".join(map(str,[t.start_char, t.end_char]))
+        return "-".join(map(str, [t.start_char, t.end_char]))
 
     # The ID of a token is built out of the index of the token in the sentence
     # (a tupel as this reports multi-word tokens on the same index with a sub
     # index for sub-tokens) as well as the start/end offset if the token
     def token_id(self, t):
-        return ".".join(["-".join(map(str,t.id)), self.offset_id(t)])
+        return ".".join(["-".join(map(str, t.id)), self.offset_id(t)])
 
     # The ID of a word is built out of the index of the token in the sentence
     # as well as the start/end offset if the token
