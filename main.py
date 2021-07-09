@@ -15,8 +15,8 @@
 
 # This is the webservice exposing functionality of the stanza service.
 
-import json
-import cherrypy as cherrypy
+import cherrypy
+
 import stanzaService
 
 p = stanzaService.StanzaService()
