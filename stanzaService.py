@@ -12,6 +12,7 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import os
 import threading
 from contextlib import redirect_stderr
 
@@ -26,18 +27,26 @@ class LanguageNotSupportedError(object):
 class StanzaService:
 
     pipelines = {}
+    sem = threading.Semaphore()
 
     def __init__(self):
         self._lock = threading.Lock()
-        stanza.download('de')  # download German model
-        stanza.download('en')  # download English model
-        self.pipelines["de"] = stanza.Pipeline(lang="de", processors='tokenize,mwt,pos,lemma,ner');
-        self.pipelines["en"] = stanza.Pipeline(lang="en", processors='tokenize,mwt,pos,lemma,ner');
+        languages = os.environ.get('STANZA_SERVER_LANGUAGES')
+        if languages is not None:
+            for lang in languages.split(','):
+                stanza.download(lang)  # download the model
+                pipeline = os.environ.get("STANZA_SERVER_PIPELINE_{}".format(lang.upper()))
+                countStr = os.environ.get("STANZA_SERVER_PIPELINE_{}_COUNT").format(lang.upper())
+                count = int(countStr) if countStr is not None else 1
+                if pipeline is not None:
+                    self.pipelines[lang] = []
+                    for _ in range(count):
+                        self.pipelines[lang].append(stanza.Pipeline(lang=lang, processors=pipeline))
 
     def process(self, text, lang):
         # creating a pipeline seams to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
-        if nlp != None:
+        if nlp is not None:
             with self._lock: # concurrent annotations are not allowed
                 return self.map_annotations(nlp(text))
         else:
@@ -140,3 +149,13 @@ class StanzaService:
     # as well as the start/end offset if the token
     def word_id(self, w):
         return ".".join([str(w.id), self.offset_id(w.parent)])
+
+class LanguagePipeline:
+
+    def __init__(self, lang, processors, count):
+        self.lang = lang
+        self.processors = processors
+        self.pipelines = []
+        for _ in range(count):
+            self.pipelines.append(stanza.Pipeline(lang=lang, processors=processors))
+
