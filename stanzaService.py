@@ -45,15 +45,15 @@ class StanzaService:
     # TODO: add support for dependency parsing features
     def map_annotations(self, annotations):
         return {
-            "sentences": list(map(self.map_sentence, annotations.sentences)),
-            "entities": list(map(self.map_entity, annotations.entities))
+            "sentences": [self.map_sentence(sentence) for sentence in annotations.sentences],
+            "entities": [self.map_entity(entity) for entity in annotations.entities]
         }
 
     def map_sentence(self, s):
         sentence = {
             "text": s.text,
-            "tokens": list(map(self.map_token, s.tokens)),
-            "words": list(map(self.map_word, s.words))
+            "tokens": [self.map_token(token) for token in s.tokens],
+            "words": [self.map_word(word) for word in s.words]
         }
         try:
             sentence["sentiment"] = s.sentiment
