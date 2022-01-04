@@ -14,12 +14,11 @@
 #
 import os
 import threading
-from contextlib import redirect_stderr
 
 import stanza
 
 
-class LanguageNotSupportedError(object):
+class LanguageNotSupportedError(Exception):
     """Raised when the requested language is nor supported"""
     pass
 
@@ -44,25 +43,26 @@ class StanzaService:
                         self.pipelines[lang].append(stanza.Pipeline(lang=lang, processors=pipeline))
 
     def process(self, text, lang):
-        # creating a pipeline seams to be expensive ... so we should cache them
+        # creating a pipeline seems to be expensive ... so we should cache them
         nlp = self.pipelines.get(lang)
         if nlp is not None:
             with self._lock: # concurrent annotations are not allowed
                 return self.map_annotations(nlp(text))
         else:
-            raise LanguageNotSupportedError
+            raise LanguageNotSupportedError()
 
-    # TODO: add support for dependency parsing feautres
+    # TODO: add support for dependency parsing features
     def map_annotations(self, annotations):
         return {
-            "sentences": list(map(self.map_sentence, annotations.sentences)),
-            "entities": list(map(self.map_entity, annotations.entities))}
+            "sentences": [self.map_sentence(sentence) for sentence in annotations.sentences],
+            "entities": [self.map_entity(entity) for entity in annotations.entities]
+        }
 
     def map_sentence(self, s):
         sentence = {
             "text": s.text,
-            "tokens": list(map(self.map_token, s.tokens)),
-            "words": list(map(self.map_word, s.words))
+            "tokens": [self.map_token(token) for token in s.tokens],
+            "words": [self.map_word(word) for word in s.words]
         }
         try:
             sentence["sentiment"] = s.sentiment
@@ -91,9 +91,9 @@ class StanzaService:
             "token": self.token_id(w.parent),
         }
         # NOTE:
-        # * pos/upos hold the Universal POS tags (https://universaldependencies.org/u/pos/)
+        # * pos/upos hold the universal POS tags (https://universaldependencies.org/u/pos/)
         # * xpos hold the model specific POS tags (see https://stanfordnlp.github.io/stanza/available_models.html)
-        # We keep both to allow clients to use upos as a base line but allow for more preceise mappings
+        # We keep both to allow clients to use upos as a base line but allow for more precise mappings
         # for specific languages/models
         try:  # only present if the pos processor is in the pipeline
             word["pos"] = w.pos
@@ -137,18 +137,19 @@ class StanzaService:
 
     @staticmethod
     def offset_id(t):
-        return "-".join(map(str,[t.start_char, t.end_char]))
+        return f"{t.start_char}-{t.end_char}"
 
     # The ID of a token is built out of the index of the token in the sentence
     # (a tupel as this reports multi-word tokens on the same index with a sub
     # index for sub-tokens) as well as the start/end offset if the token
     def token_id(self, t):
-        return ".".join(["-".join(map(str,t.id)), self.offset_id(t)])
+        index_id = "-".join([str(index) for index in t.id])
+        return f"{index_id}.{self.offset_id(t)}"
 
     # The ID of a word is built out of the index of the token in the sentence
     # as well as the start/end offset if the token
     def word_id(self, w):
-        return ".".join([str(w.id), self.offset_id(w.parent)])
+        return f"{w.id}.{self.offset_id(w.parent)}"
 
 class LanguagePipeline:
 
@@ -158,4 +159,3 @@ class LanguagePipeline:
         self.pipelines = []
         for _ in range(count):
             self.pipelines.append(stanza.Pipeline(lang=lang, processors=processors))
-

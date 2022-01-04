@@ -7,7 +7,7 @@ Provides a webservice exposing [Stanford Stanza](https://stanfordnlp.github.io/s
 First clone the repository
 
 ```
-git clone git@bitbucket.org:redlinkgmbh/stanza-server.git
+git clone git@github.com:redlink-gmbh/stanza-server.git
 ```
 
 Build the docker image
