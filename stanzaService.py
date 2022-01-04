@@ -12,44 +12,61 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
+import logging
 import os
-import threading
+import queue
 
 import stanza
 
 
 class LanguageNotSupportedError(Exception):
-    """Raised when the requested language is nor supported"""
+    """Raised when the requested language is not supported"""
+    pass
+
+class PipelineTimeout(Exception):
+    """Raised when no pipeline for the requested language is not available for a given time period"""
     pass
 
 
 class StanzaService:
 
-    pipelines = {}
-    sem = threading.Semaphore()
+    __pipelines = {}
+    __pipeline_timeout = None
 
     def __init__(self):
-        self._lock = threading.Lock()
+        logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
         languages = os.environ.get('STANZA_SERVER_LANGUAGES')
+        default_pipeline = os.environ.get('STANZA_SERVER_PIPELINE', None)
+        pipeline_timeout_str = os.environ.get('STANZA_SERVER_PIPELINE_TIMEOUT', "0")
+        pipeline_timeout = int(pipeline_timeout_str) if pipeline_timeout_str is not None else None
+        self.__pipeline_timeout = pipeline_timeout if pipeline_timeout > 0 else None
         if languages is not None:
             for lang in languages.split(','):
                 stanza.download(lang)  # download the model
-                pipeline = os.environ.get("STANZA_SERVER_PIPELINE_{}".format(lang.upper()))
-                countStr = os.environ.get("STANZA_SERVER_PIPELINE_{}_COUNT").format(lang.upper())
-                count = int(countStr) if countStr is not None else 1
+                pipeline = os.environ.get("STANZA_SERVER_PIPELINE_{}".format(lang.upper()), default_pipeline)
+                count_str = os.environ.get("STANZA_SERVER_PIPELINE_{}_COUNT".format(lang.upper()), "1")
+                count = int(count_str) if count_str is not None else 1
                 if pipeline is not None:
-                    self.pipelines[lang] = []
+                    self.__pipelines[lang] = queue.Queue(count)
+                    logging.info("Initialize %s pipelines for language '%s' pipeline=%s", count, lang, pipeline)
                     for _ in range(count):
-                        self.pipelines[lang].append(stanza.Pipeline(lang=lang, processors=pipeline))
+                        self.__pipelines[lang].put(stanza.Pipeline(lang=lang, processors=pipeline))
 
     def process(self, text, lang):
         # creating a pipeline seems to be expensive ... so we should cache them
-        nlp = self.pipelines.get(lang)
-        if nlp is not None:
-            with self._lock: # concurrent annotations are not allowed
-                return self.map_annotations(nlp(text))
-        else:
+        lang_pipelines = self.__pipelines[lang]
+        if lang_pipelines is None:
             raise LanguageNotSupportedError()
+        try:
+            nlp = lang_pipelines.get(timeout=self.__pipeline_timeout)  # max wait is 10sec
+            logging.info("got pipeline (language: '%s' available: %s)", lang, lang_pipelines.qsize())
+            try:
+                return self.map_annotations(nlp(text))
+            finally:
+                lang_pipelines.put(nlp)
+                logging.info("put pipeline for language: '%s' back to the queue", lang)
+        except queue.Empty:
+            raise PipelineTimeout()
 
     # TODO: add support for dependency parsing features
     def map_annotations(self, annotations):
@@ -150,12 +167,3 @@ class StanzaService:
     # as well as the start/end offset if the token
     def word_id(self, w):
         return f"{w.id}.{self.offset_id(w.parent)}"
-
-class LanguagePipeline:
-
-    def __init__(self, lang, processors, count):
-        self.lang = lang
-        self.processors = processors
-        self.pipelines = []
-        for _ in range(count):
-            self.pipelines.append(stanza.Pipeline(lang=lang, processors=processors))
