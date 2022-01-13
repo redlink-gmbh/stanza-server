@@ -17,6 +17,9 @@ RUN python3 -m pip install --no-cache-dir \
 
 COPY *.py ./
 
+ENV STANZA_SERVER_LANGUAGES=de,en
+ENV STANZA_SERVER_PIPELINE=tokenize,mwt,pos,lemma,ner
+
 #prevent downloading stanza models on every restart
 VOLUME ["/root/stanza_resources"]
 
