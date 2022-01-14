@@ -22,6 +22,7 @@ import cherrypy
 import stanza
 from stanzaService import StanzaService
 import analysisProcess
+import multiprocessing
 
 stanzaService = None
 
@@ -39,6 +40,7 @@ class StanzaWebService(object):
 
 # main
 if __name__ == '__main__':
+    multiprocessing.set_start_method('spawn') #CUDA requires spawn for multiprocessing!
     logging.basicConfig(format='%(levelname)s:%(message)s', level=logging.DEBUG)
     languages = os.environ.get('STANZA_SERVER_LANGUAGES', 'en')
     default_pipeline = os.environ.get('STANZA_SERVER_PIPELINE', 'tokenize,mwt,pos,lemma,ner')
