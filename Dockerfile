@@ -1,5 +1,6 @@
-ARG CUDA_VERSION="10.1"
-FROM nvidia/cuda:${CUDA_VERSION}-base
+ARG CUDA_VERSION="11.0.3"
+ARG OS_VERSION="ubuntu20.04"
+FROM nvidia/cuda:${CUDA_VERSION}-base-${OS_VERSION}
 
 RUN apt-get update -qq \
     && apt-get install -qq -y --no-install-recommends \
