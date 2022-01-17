@@ -1,0 +1,17 @@
+version: 2
+updates:
+  # Maintain dependencies for GitHub Actions
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "daily"
+  # Keep the dockerfiles up to date
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+  # Keep python-dependencies up to date
+  - package-ecosystem: "pip"
+    directory: /
+    schedule:
+      interval: "daily"
