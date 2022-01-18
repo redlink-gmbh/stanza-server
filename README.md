@@ -2,7 +2,7 @@
 
 Provides a webservice exposing [Stanford Stanza](https://stanfordnlp.github.io/stanza/index.html) as a webservice.
 
-# Usage:
+## Build
 
 First clone the repository
 
@@ -19,12 +19,13 @@ docker build -t stanza-server .
 Run the server via docker 
 
 ```
-docker run -p 8080:8080 -v ~/stanza_resources/:/root/stanza_resources/ stanza-server
+docker run -p 8080:8080 -v ~/stanza_resources:/var/stanza-server/models stanza-server
 ```
 
-Note:
+**Note:**
 
- * the volume for `/root/stanza_resources` prevents downloading models on every start
+ * the volume for `/var/stanza-server/models` prevents downloading models on every start.
+   Make sure to set the permissions for the volume accordingly (`uid=1000/gid=65534`)
 
 After this you can use the server under `http://localhost:8080/process`
 
@@ -70,7 +71,7 @@ __NOTE:__ The current Version of the Stanza Server requires Python 3.8 what
 forces the use of CUDA 11+ and ubuntu 20. The versions referenced in the Dockerfile
 represent the lower bound. The server was also tested with CUDA 11.4.3
 
-### Example Usage:
+## Example Usage
 
 ```
 curl -X POST -H "content-type: application/json" \
@@ -234,12 +235,12 @@ and the response format:
 }
 ```
 
-### License:
+## License:
 
 Free use of this software is granted under the terms of the Apache License Version 2.0.
 See the [License](LICENSE.txt) for more details.
 
-### Open Issues:
+## Open Issues:
 
 * Dependency annotations are not supported yet
 
