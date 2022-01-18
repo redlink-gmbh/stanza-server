@@ -6,6 +6,7 @@ RUN useradd --create-home \
     --home-dir /var/stanza-server \
     --shell /usr/sbin/nologin \
     --gid nogroup \
+    --uid 1000 \
     stanza
 
 RUN apt-get update -qq \
