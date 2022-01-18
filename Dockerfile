@@ -1,5 +1,6 @@
-ARG CUDA_VERSION="10.1"
-FROM nvidia/cuda:${CUDA_VERSION}-base
+ARG CUDA_VERSION="11.0.3"
+ARG OS_VERSION="ubuntu20.04"
+FROM nvidia/cuda:${CUDA_VERSION}-base-${OS_VERSION}
 
 RUN apt-get update -qq \
     && apt-get install -qq -y --no-install-recommends \
@@ -16,6 +17,9 @@ RUN python3 -m pip install --no-cache-dir \
     -r requirements.txt
 
 COPY *.py ./
+
+ENV STANZA_SERVER_LANGUAGES=de,en
+ENV STANZA_SERVER_PIPELINE=tokenize,mwt,pos,lemma,ner
 
 #prevent downloading stanza models on every restart
 VOLUME ["/root/stanza_resources"]

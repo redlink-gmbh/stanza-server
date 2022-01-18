@@ -28,6 +28,35 @@ Note:
 
 After this you can use the server under `http://localhost:8080/process`
 
+## Configuration
+
+The server can be configured using environment variables
+
+```
+# comma separated list of languages (default: en)
+STANZA_SERVER_LANGUAGES=en,de
+# coma separated list of stanza processors as used by default
+# for any languages (default: tokenize,mwt,pos,lemma,ner)
+STANZA_SERVER_PIPELINE=tokenize,mwt,pos,lemma,ner
+```
+In addition language specific pipeline can be configured. 
+```
+# STANZA_SERVER_PIPELINE_{LANG}
+# e.g. to configure a pipeline for de use
+STANZA_SERVER_PIPELINE_DE=tokenize,mwt,pos,lemma,ner
+```
+The server also supports loading a langauge model multiple times
+to allow for parallel processing. 
+
+__NOTE: This only provides performance gains if GPU/CUDA support is active.__
+When running on a CPU processing will be much slower if this feature is active
+ ```
+# use STANZA_SERVER_PIPELINE_{LANG}_COUNT to load a model for a 
+# language multiple times
+# e.g. to load the German model 4 times use
+STANZA_SERVER_PIPELINE_DE_COUNT=4
+```
+
 ## GPU/CUDA Support
 To improve performance, stanza can use a Nvidia-CUDA on a GPU.
 For CUDA-Support in docker, you have to [install `nvidia-docker2`](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html#docker).
@@ -36,6 +65,10 @@ After that, start the container with gpu-support enabled:
 ```
 docker run -p 8080:8080 --gpus all -v ~/stanza_resources/:/root/stanza_resources/ stanza-server
 ```
+
+__NOTE:__ The current Version of the Stanza Server requires Python 3.8 what
+forces the use of CUDA 11+ and ubuntu 20. The versions referenced in the Dockerfile
+represent the lower bound. The server was also tested with CUDA 11.4.3
 
 ### Example Usage:
 
@@ -208,8 +241,5 @@ See the [License](LICENSE.txt) for more details.
 
 ### Open Issues:
 
-* Stanza can load models for languages (e.g. `stanza.download('en')`). I would like to have this configureable.
-For now it only downloads the German and English models are downloaded when it starts. 
 * Dependency annotations are not supported yet
-* The analysis pipeline is currently hardcoded. One could make this configurable
 

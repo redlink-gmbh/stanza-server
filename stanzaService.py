@@ -12,132 +12,56 @@
 #  See the License for the specific language governing permissions and
 #  limitations under the License.
 #
-import threading
-
-import stanza
+import logging
+import queue
 
 
 class LanguageNotSupportedError(Exception):
-    """Raised when the requested language is nor supported"""
+    """Raised when the requested language is not supported"""
+    pass
+
+
+class PipelineTimeout(Exception):
+    """Raised when no pipeline for the requested language is not available for a given time period"""
+    pass
+
+
+class ProcessingException(Exception):
+    """Raised when processing the parsed text failed"""
     pass
 
 
 class StanzaService:
 
-    def __init__(self):
-        self._lock = threading.Lock()
-        stanza.download('de')  # download German model
-        stanza.download('en')  # download English model
-        self.pipelines = {
-            "de": stanza.Pipeline(lang="de", processors="tokenize,mwt,pos,lemma,ner"),
-            "en": stanza.Pipeline(lang="en", processors="tokenize,mwt,pos,lemma,ner")
-        }
+    def __init__(self, analysis_processes, analysis_process_timeout):
+        self.analysis_processes = analysis_processes
+        self.analysis_process_timeout = analysis_process_timeout
+
+    def __del__(self):
+        """Ensures that all analysis processors are terminated"""
+        for analysis_processors in self.analysis_processes.values():
+            for analysis_processor in analysis_processors:
+                # sending None as text is the termination signal
+                analysis_processor.parent_con.send([None])
 
     def process(self, text, lang):
         # creating a pipeline seems to be expensive ... so we should cache them
-        nlp = self.pipelines.get(lang)
-        if nlp:
-            with self._lock:  # concurrent annotations are not allowed
-                return self.map_annotations(nlp(text))
-        else:
+        if not lang in self.analysis_processes:
             raise LanguageNotSupportedError()
-
-    # TODO: add support for dependency parsing features
-    def map_annotations(self, annotations):
-        return {
-            "sentences": [self.map_sentence(sentence) for sentence in annotations.sentences],
-            "entities": [self.map_entity(entity) for entity in annotations.entities]
-        }
-
-    def map_sentence(self, s):
-        sentence = {
-            "text": s.text,
-            "tokens": [self.map_token(token) for token in s.tokens],
-            "words": [self.map_word(word) for word in s.words]
-        }
+        lang_analysis_processes = self.analysis_processes[lang]
         try:
-            sentence["sentiment"] = s.sentiment
-        except AttributeError:
-            pass
-        return sentence
-
-    def map_token(self, t):
-        token = {
-            "id": self.token_id(t),
-            "text": t.text,
-            "start": t.start_char,
-            "end": t.end_char,
-        }
-        try:
-            if t.ner != "O":
-                token["ner"] = t.ner
-        except AttributeError:
-            pass
-        return token
-
-    def map_word(self, w):
-        word = {
-            "id": self.word_id(w),
-            "text": w.text,
-            "token": self.token_id(w.parent),
-        }
-        # NOTE:
-        # * pos/upos hold the universal POS tags (https://universaldependencies.org/u/pos/)
-        # * xpos hold the model specific POS tags (see https://stanfordnlp.github.io/stanza/available_models.html)
-        # We keep both to allow clients to use upos as a base line but allow for more precise mappings
-        # for specific languages/models
-        try:  # only present if the pos processor is in the pipeline
-            word["pos"] = w.pos
-        except AttributeError:
-            pass
-        try:  # only present if the pos processor is in the pipeline
-            word["xpos"] = w.xpos
-        except AttributeError:
-            pass
-        try:  # only present if the lemma processor is in the pipeline
-            word["lemma"] = w.lemma
-        except AttributeError:
-            pass
-        try:
-            word["features"] = w.feats
-        except AttributeError:
-            pass
-        try:
-            word["misc"] = w.misc
-        except AttributeError:
-            pass
-        return word
-
-    def map_entity(self, e):
-        entity = {
-            "start": e.start_char,
-            "end": e.end_char,
-            "text": e.text,
-            "type": e.type,
-        }
-        t_ref = []
-        for t in e.tokens:
-            t_ref.append(self.token_id(t))
-        entity["tokens"] = t_ref
-
-        w_ref = []
-        for w in e.words:
-            w_ref.append(self.word_id(w))
-        entity["words"] = w_ref
-        return entity
-
-    @staticmethod
-    def offset_id(t):
-        return f"{t.start_char}-{t.end_char}"
-
-    # The ID of a token is built out of the index of the token in the sentence
-    # (a tupel as this reports multi-word tokens on the same index with a sub
-    # index for sub-tokens) as well as the start/end offset if the token
-    def token_id(self, t):
-        index_id = "-".join([str(index) for index in t.id])
-        return f"{index_id}.{self.offset_id(t)}"
-
-    # The ID of a word is built out of the index of the token in the sentence
-    # as well as the start/end offset if the token
-    def word_id(self, w):
-        return f"{w.id}.{self.offset_id(w.parent)}"
+            analysis_process = lang_analysis_processes.get(timeout=self.analysis_process_timeout)
+            logging.info("got analysis process for language: '%s' (others available: %s)",
+                         lang, lang_analysis_processes.qsize())
+            try:
+                analysis_process.parent_con.send(text)
+                response = analysis_process.parent_con.recv()
+                if "error" in response:
+                    raise ProcessingException(response["error"])
+                else:
+                    return response["result"]
+            finally:
+                lang_analysis_processes.put(analysis_process)
+                logging.info("put pipeline for language: '%s' back to the queue", lang)
+        except queue.Empty:
+            raise PipelineTimeout()
