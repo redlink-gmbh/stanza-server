@@ -46,7 +46,7 @@ class StanzaService:
 
     def process(self, text, lang):
         # creating a pipeline seems to be expensive ... so we should cache them
-        if not lang in self.analysis_processes:
+        if lang not in self.analysis_processes:
             raise LanguageNotSupportedError()
         lang_analysis_processes = self.analysis_processes[lang]
         try:

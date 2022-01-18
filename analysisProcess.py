@@ -25,7 +25,7 @@ class AnalysisProcess:
     def __init__(self, lang, pipeline):
         self.parent_con, child_con = Pipe()
         nlp = stanza.Pipeline(lang=lang, processors=pipeline)
-        self.__process = Process(target=self.process, daemon=True, args=(child_con,nlp))
+        self.__process = Process(target=self.process, daemon=True, args=(child_con, nlp))
         self.__process.start()
 
     def process(self, connection, nlp):
@@ -39,8 +39,8 @@ class AnalysisProcess:
             try:
                 response["result"] = self.map_annotations(nlp(text))
             except BaseException as err:
-                response[
-                    "error"] = f"Error while processing text for language {nlp.lang} with pipeline {nlp.processors} ({err=}, {type(err)=})"
+                response["error"] = f"Error while processing text for language {nlp.lang} with " \
+                                    f"pipeline {nlp.processors} ({err=}, {type(err)=})"
                 logging.warning(response["error"])
             finally:
                 connection.send(response)
