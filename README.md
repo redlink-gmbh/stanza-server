@@ -241,8 +241,5 @@ See the [License](LICENSE.txt) for more details.
 
 ### Open Issues:
 
-* Stanza can load models for languages (e.g. `stanza.download('en')`). I would like to have this configureable.
-For now it only downloads the German and English models are downloaded when it starts. 
 * Dependency annotations are not supported yet
-* The analysis pipeline is currently hardcoded. One could make this configurable
 
