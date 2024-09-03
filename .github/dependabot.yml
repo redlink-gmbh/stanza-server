@@ -5,6 +5,13 @@ updates:
     directory: "/"
     schedule:
       interval: "daily"
+    groups:
+      github-actions:
+        patterns:
+          - "actions/*"
+      docker:
+        patterns:
+          - "docker/*"
   # Keep the dockerfiles up to date
   - package-ecosystem: "docker"
     directory: "/"
